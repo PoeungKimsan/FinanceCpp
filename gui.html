@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Expense Tracker — Cohere System Design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Cohere 2026 Design Tokens */
+      --primary: #17171c;
+      --cohere-black: #000000;
+      --ink: #212121;
+      --deep-green: #003c33;
+      --dark-navy: #071829;
+      --canvas: #ffffff;
+      --soft-stone: #eeece7;
+      --pale-green: #edfce9;
+      --pale-blue: #f1f5ff;
+      --hairline: #d9d9dd;
+      --border-light: #e5e7eb;
+      --muted: #93939f;
+      --slate: #75758a;
+      --body-muted: #616161;
+      --action-blue: #1863dc;
+      --focus-blue: #4c6ee6;
+      --coral: #ff7759;
+      --coral-soft: #ffad9b;
+      --on-primary: #ffffff;
+      --error: #b30000;
+
+      /* Radii */
+      --r-xs: 4px;
+      --r-sm: 8px;
+      --r-md: 16px;
+      --r-lg: 22px;
+      --r-pill: 32px;
+      --r-full: 9999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--canvas);
+      color: var(--ink);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 80px;
+    }
+
+    /* Top Announcement Strip */
+    .announcement-bar {
+      background-color: var(--cohere-black);
+      color: var(--canvas);
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      font-family: "Space Grotesk", "Inter", sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.28px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .announcement-bar span { opacity: 0.9; }
+
+    /* Main Container */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Global Nav Header */
+    nav.top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 36px;
+    }
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      color: var(--cohere-black);
+    }
+    .brand-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--r-full);
+      background-color: var(--soft-stone);
+      color: var(--slate);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Button Styles from Cohere System */
+    .btn-pill-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--r-pill);
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.15s ease, transform 0.1s ease;
+      text-decoration: none;
+    }
+    .btn-pill-primary:hover {
+      background-color: var(--cohere-black);
+    }
+
+    .btn-pill-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-pill);
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-pill-outline:hover {
+      background-color: var(--soft-stone);
+      border-color: var(--border-light);
+    }
+
+    /* Top Nav Action Buttons */
+    .btn-nav-income {
+      background-color: var(--soft-stone);
+      color: var(--deep-green);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-pill);
+      padding: 10px 20px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-income:hover {
+      background-color: var(--deep-green);
+      border-color: var(--deep-green);
+      color: var(--canvas);
+    }
+
+    .btn-nav-expense {
+      background-color: var(--primary);
+      color: var(--canvas);
+      border: 1px solid var(--primary);
+      border-radius: var(--r-pill);
+      padding: 10px 20px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-expense:hover {
+      background-color: var(--coral);
+      border-color: var(--coral);
+      color: var(--canvas);
+    }
+
+    /* Deep Green Product Hero Band */
+    .dark-feature-band {
+      background-color: var(--deep-green);
+      color: var(--canvas);
+      border-radius: var(--r-lg);
+      padding: 44px 48px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .dark-feature-band::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(255, 119, 89, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .mono-label {
+      font-family: "Space Grotesk", monospace;
+      font-size: 13px;
+      letter-spacing: 0.28px;
+      text-transform: uppercase;
+      font-weight: 500;
+      color: #9fe2d6;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mono-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: var(--r-full);
+      background-color: var(--coral);
+    }
+
+    .hero-split {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .hero-title-area h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 48px;
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -1.2px;
+      margin-bottom: 10px;
+      color: var(--canvas);
+    }
+    .hero-sub {
+      color: #b7ded8;
+      font-size: 15px;
+      max-width: 500px;
+    }
+
+    .hero-metrics-pill-cluster {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .hero-kpi-card {
+      background-color: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--r-md);
+      padding: 16px 22px;
+      min-width: 170px;
+    }
+    .hero-kpi-card .lbl {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.28px;
+      color: #a3c9c2;
+      margin-bottom: 6px;
+    }
+    .hero-kpi-card .val {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--canvas);
+      letter-spacing: -0.5px;
+    }
+
+    /* Metric Cards Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 768px) {
+      .metric-grid { grid-template-columns: 1fr; }
+    }
+
+    .stone-card {
+      background-color: var(--soft-stone);
+      border-radius: var(--r-md);
+      padding: 24px 28px;
+      border: 1px solid var(--hairline);
+      transition: transform 0.15s ease;
+    }
+    .stone-card .card-mono {
+      font-family: "Space Grotesk", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.28px;
+      color: var(--slate);
+      margin-bottom: 10px;
+    }
+    .stone-card .card-value {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -0.8px;
+      line-height: 1.1;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .stone-card .card-desc {
+      font-size: 13px;
+      color: var(--body-muted);
+    }
+    .stone-card.accent-coral .card-value { color: var(--coral); }
+    .stone-card.accent-green .card-value { color: var(--deep-green); }
+
+    /* Research Table Section (Cohere Style) */
+    .research-section {
+      background-color: var(--canvas);
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-lg);
+      padding: 32px;
+    }
+    .table-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .table-title {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.32px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .table-count-badge {
+      font-family: "Space Grotesk", monospace;
+      font-size: 12px;
+      color: var(--slate);
+      background: var(--soft-stone);
+      padding: 3px 9px;
+      border-radius: var(--r-full);
+    }
+
+    /* Taxonomy Filter Chips */
+    .taxonomy-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      background-color: transparent;
+      border: 1px solid var(--hairline);
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      color: var(--slate);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .filter-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .filter-chip.active {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: var(--canvas);
+      font-weight: 500;
+    }
+
+    /* Clean Rule-Separated Table */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+    table.cohere-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    table.cohere-table th {
+      font-family: "Space Grotesk", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.28px;
+      color: var(--muted);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+      font-weight: 500;
+    }
+    table.cohere-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 14px;
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    table.cohere-table tr:hover td {
+      background-color: #fafaf9;
+    }
+    .td-id {
+      font-family: "Space Grotesk", monospace;
+      color: var(--slate);
+      font-size: 13px;
+    }
+    .td-amount {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .amount-Income { color: var(--deep-green); }
+    .amount-Expense { color: var(--coral); }
+    .amount-Savings { color: var(--action-blue); }
+
+    /* Category Tag Badges */
+    .category-chip {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: var(--r-sm);
+      font-family: "Space Grotesk", monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+    .cat-Income {
+      background-color: var(--pale-green);
+      color: var(--deep-green);
+      border: 1px solid #d4f4cd;
+    }
+    .cat-Expense {
+      background-color: #fff1ee;
+      color: #c94326;
+      border: 1px solid var(--coral-soft);
+    }
+    .cat-Savings {
+      background-color: var(--pale-blue);
+      color: var(--action-blue);
+      border: 1px solid #d7e4ff;
+    }
+
+    .td-action {
+      text-align: right;
+    }
+    .action-delete-link {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: color 0.15s ease;
+    }
+    .action-delete-link:hover {
+      color: var(--error);
+    }
+
+    /* Notification Alert Banner */
+    .status-toast {
+      background-color: var(--pale-green);
+      border: 1px solid #b7edaa;
+      color: var(--deep-green);
+      padding: 12px 20px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      margin-bottom: 24px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    /* Cohere Modal Popup */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(23, 23, 28, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    .modal-card {
+      background-color: var(--canvas);
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-lg);
+      width: 100%;
+      max-width: 480px;
+      padding: 34px 32px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
+      transform: translateY(14px) scale(0.98);
+      transition: all 0.2s ease;
+    }
+    .modal-overlay.active .modal-card {
+      transform: translateY(0) scale(1);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 22px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .modal-header h3 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.32px;
+      color: var(--ink);
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 26px;
+      line-height: 1;
+      color: var(--slate);
+      cursor: pointer;
+      padding: 0 4px;
+      border-radius: var(--r-xs);
+      transition: color 0.15s ease;
+    }
+    .modal-close-btn:hover {
+      color: var(--ink);
+    }
+
+    .field-group {
+      margin-bottom: 18px;
+    }
+    .field-group label {
+      display: block;
+      font-family: "Space Grotesk", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.28px;
+      color: var(--slate);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .cohere-input {
+      width: 100%;
+      height: 44px;
+      padding: 10px 14px;
+      background-color: var(--canvas);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-sm);
+      font-family: "Inter", sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .cohere-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Modal Category Segmented Controls */
+    .modal-type-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background-color: var(--soft-stone);
+      padding: 4px;
+      border-radius: var(--r-pill);
+    }
+    .modal-type-btn {
+      background: transparent;
+      border: none;
+      padding: 8px 12px;
+      border-radius: var(--r-pill);
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--slate);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .modal-type-btn.active {
+      background-color: var(--canvas);
+      color: var(--ink);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      font-weight: 600;
+    }
+    .modal-type-btn.active#tab-Expense { color: var(--coral); }
+    .modal-type-btn.active#tab-Income { color: var(--deep-green); }
+    .modal-type-btn.active#tab-Savings { color: var(--action-blue); }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      align-items: center;
+      margin-top: 26px;
+    }
+
+    /* Footer Strip */
+    footer.cohere-footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Announcement Bar (Cohere Black) -->
+  <div class="announcement-bar">
+    <span>C++ Financial Architecture &bull; Local Storage via <code>transactions.txt</code></span>
+    <span class="mono-label" style="color: #9fe2d6; margin: 0; font-size: 11px;">Status: Connected</span>
+  </div>
+
+  <div class="container">
+    <!-- Top Navigation with Action Buttons moved to Top Right -->
+    <nav class="top-nav">
+      <div class="brand-mark">
+        <span>Finance</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-nav-income" onclick="openModal('Income')">
+          <span>Add Income</span>
+        </button>
+        <button class="btn-nav-expense" onclick="openModal('Expense')">
+          <span>Add Expense</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Notification Alert -->
+    <div id="status-alert" class="status-toast">
+      <span class="mono-dot" style="background-color: var(--deep-green);"></span>
+      <span id="status-text">Ledger synchronized successfully.</span>
+    </div>
+
+    <!-- Deep Enterprise Green Feature Band (Signature Cohere Element) -->
+    <section class="dark-feature-band">
+      <div class="mono-label">
+        <span class="mono-dot"></span>
+        <span>Liquid Balance Position</span>
+      </div>
+      <div class="hero-split">
+        <div class="hero-title-area">
+          <h2 id="kpi-available">$0.00</h2>
+          <p class="hero-sub">Available capital ready for allocation. Formula: <code>Total Income &minus; Total Expenses &minus; Savings</code></p>
+        </div>
+        <div class="hero-metrics-pill-cluster">
+          <div class="hero-kpi-card">
+            <div class="lbl">Total Balance (Net)</div>
+            <div class="val" id="kpi-totalbal">$0.00</div>
+          </div>
+          <div class="hero-kpi-card">
+            <div class="lbl">Savings Reserves</div>
+            <div class="val" id="kpi-savings">$0.00</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Soft Stone Metric Grid -->
+    <section class="metric-grid">
+      <div class="stone-card accent-green">
+        <div class="card-mono">01 // Gross Inflow</div>
+        <div class="card-value" id="kpi-income">$0.00</div>
+        <div class="card-desc">All recorded income and earnings.</div>
+      </div>
+
+      <div class="stone-card accent-coral">
+        <div class="card-mono">02 // Total Spending</div>
+        <div class="card-value" id="kpi-expenses">$0.00</div>
+        <div class="card-desc">Aggregate debits and outgoing expenses.</div>
+      </div>
+
+      <div class="stone-card">
+        <div class="card-mono">03 // Capital Allocation</div>
+        <div class="card-value" id="kpi-records-count">0</div>
+        <div class="card-desc">Entries tracked across storage ledger.</div>
+      </div>
+    </section>
+
+    <!-- Research-Style Publication Table (Signature Cohere Element) -->
+    <section class="research-section">
+      <div class="table-top-bar">
+        <div class="table-title">
+          <span>Ledger History</span>
+          <span class="table-count-badge" id="total-badge">0 Records</span>
+        </div>
+        <div class="taxonomy-filters">
+          <button class="filter-chip active" onclick="setFilter('ALL', this)">All Records</button>
+          <button class="filter-chip" onclick="setFilter('Income', this)">Income</button>
+          <button class="filter-chip" onclick="setFilter('Expense', this)">Expenses</button>
+          <button class="filter-chip" onclick="setFilter('Savings', this)">Savings</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="cohere-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Ref</th>
+              <th style="width: 140px;">Category</th>
+              <th style="width: 160px;">Amount</th>
+              <th>Remark</th>
+              <th style="width: 80px; text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--muted);">No transactions recorded yet. Click <strong>Add Income</strong> or <strong>Add Expense</strong> above!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="cohere-footer">
+      <div>Finance &bull; Built with C++ &amp; Minimalist Web Systems</div>
+      <div>Data format synchronized with <code>transactions.txt</code></div>
+    </footer>
+  </div>
+
+  <!-- Cohere Modal Popup for Adding Transactions -->
+  <div id="transaction-modal" class="modal-overlay" onclick="handleBackdropClick(event)">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div>
+          <div class="mono-label" style="margin-bottom: 4px; color: var(--slate);">
+            <span class="mono-dot" id="modal-dot"></span>
+            <span id="modal-subtitle">Ledger Entry</span>
+          </div>
+          <h3 id="modal-title">Record Transaction</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal()" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form onsubmit="handleModalSubmit(event)">
+        <!-- Category Segmented Controls -->
+        <div class="field-group">
+          <label>Category</label>
+          <div class="modal-type-tabs">
+            <button type="button" class="modal-type-btn active" id="tab-Expense" onclick="setModalType('Expense')">Expense</button>
+            <button type="button" class="modal-type-btn" id="tab-Income" onclick="setModalType('Income')">Income</button>
+            <button type="button" class="modal-type-btn" id="tab-Savings" onclick="setModalType('Savings')">Savings</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Amount (USD)</label>
+          <input type="number" id="modal-amount" class="cohere-input" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+
+        <div class="field-group">
+          <label>Remark / Description</label>
+          <input type="text" id="modal-remark" class="cohere-input" placeholder="e.g. Infrastructure, Coffee, Salary" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-pill-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-pill-primary" id="modal-submit-btn">Record Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let transactions = [];
+    let currentFilter = 'ALL';
+    let currentModalType = 'Expense';
+
+    function showStatus(msg) {
+      const el = document.getElementById('status-alert');
+      const text = document.getElementById('status-text');
+      text.textContent = msg;
+      el.style.display = 'flex';
+      setTimeout(() => { el.style.display = 'none'; }, 3400);
+    }
+
+    // Modal Control Functions
+    function openModal(defaultType) {
+      setModalType(defaultType || 'Expense');
+      document.getElementById('modal-amount').value = '';
+      document.getElementById('modal-remark').value = '';
+
+      const modal = document.getElementById('transaction-modal');
+      modal.classList.add('active');
+      setTimeout(() => {
+        document.getElementById('modal-amount').focus();
+      }, 100);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('transaction-modal');
+      modal.classList.remove('active');
+    }
+
+    function handleBackdropClick(event) {
+      if (event.target.id === 'transaction-modal') {
+        closeModal();
+      }
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    function setModalType(type) {
+      currentModalType = type;
+      ['Expense', 'Income', 'Savings'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) btn.className = 'modal-type-btn' + (t === type ? ' active' : '');
+      });
+
+      const title = document.getElementById('modal-title');
+      const sub = document.getElementById('modal-subtitle');
+      const submitBtn = document.getElementById('modal-submit-btn');
+      const dot = document.getElementById('modal-dot');
+
+      if (type === 'Expense') {
+        title.textContent = 'Record Expense';
+        sub.textContent = 'Debit // Outflow';
+        submitBtn.textContent = 'Record Expense';
+        dot.style.backgroundColor = 'var(--coral)';
+      } else if (type === 'Income') {
+        title.textContent = 'Record Income';
+        sub.textContent = 'Credit // Inflow';
+        submitBtn.textContent = 'Record Income';
+        dot.style.backgroundColor = 'var(--deep-green)';
+      } else {
+        title.textContent = 'Record Savings';
+        sub.textContent = 'Reserve // Capital';
+        submitBtn.textContent = 'Record Savings';
+        dot.style.backgroundColor = 'var(--action-blue)';
+      }
+    }
+
+    function handleModalSubmit(event) {
+      event.preventDefault();
+      const amount = parseFloat(document.getElementById('modal-amount').value);
+      let remark = document.getElementById('modal-remark').value.trim();
+
+      if (!amount || amount <= 0) {
+        alert("Please enter a valid dollar amount greater than 0.");
+        return;
+      }
+
+      if (!remark) {
+        remark = currentModalType === 'Income' ? 'General Income' : (currentModalType === 'Expense' ? 'General Expense' : 'General Savings');
+      }
+
+      transactions.push({
+        id: transactions.length + 1,
+        type: currentModalType,
+        amount: amount,
+        remark: remark
+      });
+
+      render();
+      closeModal();
+      showStatus(`✓ Recorded ${currentModalType}: $${amount.toFixed(2)} ("${remark}").`);
+    }
+
+    function deleteTransaction(index) {
+      transactions.splice(index, 1);
+      transactions.forEach((t, i) => { t.id = i + 1; });
+      render();
+      showStatus("Transaction removed from active ledger.");
+    }
+
+    function parseTxtContent(content) {
+      const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return;
+
+      const count = parseInt(lines[0], 10);
+      transactions = [];
+
+      let lineIdx = 1;
+      for (let i = 0; i < count && lineIdx < lines.length; i++) {
+        const type = lines[lineIdx++];
+        const amount = parseFloat(lines[lineIdx++]);
+        const remark = lines[lineIdx++] || "No remark";
+        transactions.push({ id: i + 1, type, amount, remark });
+      }
+
+      render();
+      showStatus(`Loaded ${transactions.length} record(s) from transactions.txt.`);
+    }
+
+    function render() {
+      let income = 0, expenses = 0, savings = 0;
+
+      transactions.forEach(t => {
+        if (t.type === 'Income') income += t.amount;
+        else if (t.type === 'Expense') expenses += t.amount;
+        else if (t.type === 'Savings') savings += t.amount;
+      });
+
+      const available = income - expenses - savings;
+      const totalBalance = available + savings;
+
+      document.getElementById('kpi-available').textContent = '$' + available.toFixed(2);
+      document.getElementById('kpi-totalbal').textContent = '$' + totalBalance.toFixed(2);
+      document.getElementById('kpi-savings').textContent = '$' + savings.toFixed(2);
+      document.getElementById('kpi-income').textContent = '$' + income.toFixed(2);
+      document.getElementById('kpi-expenses').textContent = '$' + expenses.toFixed(2);
+      document.getElementById('kpi-records-count').textContent = transactions.length;
+      document.getElementById('total-badge').textContent = transactions.length + ' Records';
+
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      const filtered = transactions.filter(t => currentFilter === 'ALL' || t.type === currentFilter);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--muted);">No transactions found matching active filter.</td></tr>';
+        return;
+      }
+
+      filtered.forEach((t, idx) => {
+        const tr = document.createElement('tr');
+        const sign = t.type === 'Income' ? '+' : (t.type === 'Expense' ? '-' : '*');
+
+        tr.innerHTML = `
+          <td class="td-id">#${String(t.id).padStart(3, '0')}</td>
+          <td><span class="category-chip cat-${t.type}">${t.type}</span></td>
+          <td class="td-amount amount-${t.type}">${sign}$${t.amount.toFixed(2)}</td>
+          <td>${t.remark}</td>
+          <td class="td-action">
+            <button class="action-delete-link" onclick="deleteTransaction(${idx})">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function setFilter(flt, btn) {
+      currentFilter = flt;
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    }
+
+    // Auto-load transactions from transactions.txt
+    fetch('transactions.txt')
+      .then(res => {
+        if (!res.ok) throw new Error("Could not auto-fetch");
+        return res.text();
+      })
+      .then(text => parseTxtContent(text))
+      .catch(() => {});
+  </script>
+</body>
+</html>

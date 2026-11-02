@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "cppbuild",
+      "label": "Build Personal Expense Tracker (g++)",
+      "command": "g++",
+      "args": [
+        "-std=c++11",
+        "-Wall",
+        "-Wextra",
+        "-g",
+        "${workspaceFolder}/main.cpp",
+        "-o",
+        "${workspaceFolder}/expense_tracker"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Compiles main.cpp into the expense_tracker executable"
+    }
+  ]
+}
+

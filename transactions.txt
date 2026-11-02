@@ -1,0 +1,13 @@
+4
+Income
+3200
+Monthly Job
+Expense
+900
+Apartment Rent
+Expense
+200
+Groceries
+Savings
+600
+Emergency Fund
