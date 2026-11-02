@@ -1,7 +1,7 @@
-#include <iostream>  // For console input (cin) and output (cout)
+#include <iostream>  // For console output (cout)
 #include <fstream>   // For reading and writing files (ifstream, ofstream)
 #include <string>    // For string text variables
-#include <iomanip>   // For output formatting like setw() and setprecision()
+#include <iomanip>   // For output formatting like setprecision()
 #include <cstdlib>   // For system() to open gui.html in default browser
 using namespace std; // Avoids having to type std:: before cout, cin, string
 
@@ -55,83 +55,21 @@ double getTotalBalance() {
     return getBalance() + getTotal("Savings");
 }
 
-// Function 6: Reusable function to let user enter an Income, Expense, or Savings
-void addTransaction(string type) {
-    if (totalCount >= 100) return; // Stop if array reached limit of 100 items
-
-    double amount; // Variable to store money amount
-    string remark; // Variable to store description note
-
-    cout << "Enter " << type << " amount ($): ";
-    cin >> amount; // Read dollar amount
-
-    cout << "Enter remark: ";
-    cin.ignore();             // Clear leftover Enter key from input buffer
-    getline(cin, remark);     // Read full remark text with spaces
-
-    types[totalCount] = type;       // Save category into array at current index
-    amounts[totalCount] = amount;   // Save amount into array
-    remarks[totalCount] = remark;   // Save remark into array
-    totalCount = totalCount + 1;    // Increase count by 1
-
-    saveToFile(); // Auto-save updated data to transactions.txt
-    cout << type << " recorded and saved to transactions.txt!\n";
-}
-
-// Function 7: Displays all financial balance metrics on screen
-void checkBalances() {
-    cout << fixed << setprecision(2); // Set 2 decimal places for cents ($X.XX)
-    cout << "\n--- BALANCES ---\n"
-         << "Total Income:   $" << getTotal("Income") << "\n"   // Shows total earnings
-         << "Total Spending: $" << getTotal("Expense") << "\n"  // Shows total expenses
-         << "Total Savings:  $" << getTotal("Savings") << "\n"  // Shows money set aside
-         << "Available:      $" << getBalance() << "\n"          // Shows spending cash left
-         << "Total Balance:  $" << getTotalBalance() << "\n";    // Shows total net worth
-}
-
-// Function 8: Displays formatted table of all recorded transactions
-void displayTransactions() {
-    cout << fixed << setprecision(2); // Format output to 2 decimal places
-    cout << "\nID | TYPE    | AMOUNT     | REMARK\n----------------------------------------\n";
-    for (int i = 0; i < totalCount; i++) { // Loop and print each transaction row
-        cout << (i + 1) << "  | " << setw(7) << types[i] // Prints ID and aligned type
-             << " | $" << setw(8) << amounts[i]          // Prints aligned amount
-             << " | " << remarks[i] << "\n";             // Prints user note
-    }
-}
-
-// Function 9: Launches the separate gui.html dashboard in default web browser
+// Function 6: Launches the separate gui.html dashboard in default web browser
 void openGui() {
     system("open gui.html || start gui.html || xdg-open gui.html"); // Runs OS command to open browser
 }
 
-// Function 10: Main entry point of the C++ program
+// Function 7: Main entry point - auto-opens GUI when running ./expense_tracker
 int main() {
     loadFromFile(); // Load saved transactions from transactions.txt at startup
+    openGui();      // Auto-open GUI window in default web browser
 
-    int choice = 0; // Variable to store user menu choice
+    cout << "\n========================================\n";
+    cout << "  PERSONAL EXPENSE TRACKER GUI LAUNCHED \n";
+    cout << "========================================\n";
+    cout << "Loaded " << totalCount << " record(s) from transactions.txt.\n";
+    cout << "The graphical interface is now open in your browser.\n\n";
 
-    while (choice != 8) { // Keep running menu loop until user chooses 8 (Exit)
-        cout << "\n=== EXPENSE TRACKER ===\n"
-             << "1. Input Income    2. Input Expense    3. Input Savings\n"
-             << "4. Check Balances  5. Display History  6. Full Summary\n"
-             << "7. Open GUI Window 8. Exit\nChoice (1-8): ";
-
-        if (!(cin >> choice)) { // Check if user typed invalid input (like letters)
-            cin.clear();        // Reset error state
-            cin.ignore(100, '\n'); // Clear invalid input from buffer
-            continue;           // Restart menu loop
-        }
-
-        if (choice == 1) addTransaction("Income");       // Add income record
-        else if (choice == 2) addTransaction("Expense"); // Add expense record
-        else if (choice == 3) addTransaction("Savings"); // Add savings record
-        else if (choice == 4) checkBalances();           // Display balances
-        else if (choice == 5) displayTransactions();      // Display transaction table
-        else if (choice == 6) { checkBalances(); displayTransactions(); } // Full summary
-        else if (choice == 7) openGui();                 // Open graphical GUI in browser
-    }
-
-    cout << "Data saved to transactions.txt. Goodbye!\n"; // Exit message
-    return 0; // Return 0 indicates program ended successfully
+    return 0; // Program finishes successfully
 }
