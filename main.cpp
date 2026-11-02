@@ -1,7 +1,6 @@
 #include <iostream>  // For console output (cout)
 #include <fstream>   // For reading and writing files (ifstream, ofstream)
 #include <string>    // For string text variables
-#include <iomanip>   // For output formatting like setprecision()
 #include <cstdlib>   // For system() to open gui.html in default browser
 using namespace std; // Avoids having to type std:: before cout, cin, string
 
