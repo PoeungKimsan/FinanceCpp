@@ -2,21 +2,38 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execSync, spawn } from 'node:child_process';
+import os from 'node:os';
+import { execSync } from 'node:child_process';
 
-const ROOT_DIR = process.cwd();
+const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 const GUI_PATH = path.join(ROOT_DIR, 'gui.html');
-const SVG_PATH = path.join(ROOT_DIR, 'background-pixel.svg');
+const SVG_PATH = path.join(ROOT_DIR, 'assets', 'images', 'background-pixel.svg');
 const PRESENTATION_SVG = path.join(
   ROOT_DIR,
-  'Green and Blue Pixel Art Game Illustrative Group Project Presentation',
+  'docs',
+  'presentation',
   'background-pixel.svg'
 );
-const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+
+function getChromePath() {
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    for (const c of candidates) {
+      if (c && fs.existsSync(c)) return c;
+    }
+  } else if (process.platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+  return 'google-chrome';
+}
 
 test('Scalable Pixel Background: SVG asset existence and structure', () => {
-  assert.ok(fs.existsSync(SVG_PATH), 'background-pixel.svg must exist in root');
-  assert.ok(fs.existsSync(PRESENTATION_SVG), 'background-pixel.svg must exist in presentation folder');
+  assert.ok(fs.existsSync(SVG_PATH), 'background-pixel.svg must exist in assets/images');
+  assert.ok(fs.existsSync(PRESENTATION_SVG), 'background-pixel.svg must exist in docs/presentation');
 
   const svgContent = fs.readFileSync(SVG_PATH, 'utf-8');
   assert.ok(svgContent.includes('viewBox="0 0 1920 1080"'), 'SVG must define 1920x1080 16:9 viewBox');
@@ -53,7 +70,12 @@ test('gui.html integration: CSS pixelation and fallback cascade', () => {
 });
 
 test('Responsive Zoom In / Out Validation across multiple resolutions via Headless Chrome', async () => {
-  // Test at 50% (640x360), 100% (1280x720), 150% (1920x1080), 200% (2560x1440), and 300% 4K (3840x2160)
+  const chromePath = getChromePath();
+  if (!fs.existsSync(chromePath)) {
+    console.log(`Chrome binary not found at ${chromePath}, skipping headless resolution tests`);
+    return;
+  }
+
   const testResolutions = [
     { name: '50% zoom', width: 640, height: 360 },
     { name: '100% standard', width: 1280, height: 720 },
@@ -62,9 +84,11 @@ test('Responsive Zoom In / Out Validation across multiple resolutions via Headle
     { name: '300% 4K UHD', width: 3840, height: 2160 }
   ];
 
+  const tmpProfileDir = path.join(os.tmpdir(), 'chrome-profile-bg-test');
+
   for (const res of testResolutions) {
     const dump = execSync(
-      `"${CHROME_PATH}" --headless --disable-gpu --no-first-run --no-default-browser-check --user-data-dir=/tmp/chrome-profile-bg-test --window-size=${res.width},${res.height} --dump-dom "file://${GUI_PATH}"`,
+      `"${chromePath}" --headless --disable-gpu --no-first-run --no-default-browser-check --user-data-dir="${tmpProfileDir}" --window-size=${res.width},${res.height} --dump-dom "file://${GUI_PATH}"`,
       { encoding: 'utf-8' }
     );
 

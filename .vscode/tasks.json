@@ -12,7 +12,7 @@
         "-g",
         "${workspaceFolder}/main.cpp",
         "-o",
-        "${workspaceFolder}/expense_tracker"
+        "${workspaceFolder}/bin/expense_tracker"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -28,4 +28,3 @@
     }
   ]
 }
-

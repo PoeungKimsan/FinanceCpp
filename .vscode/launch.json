@@ -5,7 +5,7 @@
       "name": "Run Personal Expense Tracker",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/expense_tracker",
+      "program": "${workspaceFolder}/bin/expense_tracker",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

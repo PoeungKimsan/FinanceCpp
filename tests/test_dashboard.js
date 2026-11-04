@@ -4,47 +4,73 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-const ROOT_DIR = process.cwd();
+const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 const GUI_PATH = path.join(ROOT_DIR, 'gui.html');
-const TXT_PATH = path.join(ROOT_DIR, 'transactions.txt');
+const TXT_PATH = path.join(ROOT_DIR, 'data', 'transactions.txt');
 const MAIN_CPP_PATH = path.join(ROOT_DIR, 'main.cpp');
 
-test('Non-regression: main.cpp is untouched', () => {
-  const gitDiff = execSync('git diff main.cpp', { encoding: 'utf-8' });
-  assert.equal(gitDiff.trim(), '', 'main.cpp must remain completely untouched');
+function getChromePath() {
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    for (const c of candidates) {
+      if (c && fs.existsSync(c)) return c;
+    }
+  } else if (process.platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+  return 'google-chrome';
+}
+
+test('Core logic preservation: main.cpp maintains structure and functions', () => {
+  const content = fs.readFileSync(MAIN_CPP_PATH, 'utf-8');
+  assert.ok(content.includes('types[100]'), 'Parallel array types[100] must exist');
+  assert.ok(content.includes('amounts[100]'), 'Parallel array amounts[100] must exist');
+  assert.ok(content.includes('remarks[100]'), 'Parallel array remarks[100] must exist');
+  assert.ok(content.includes('void saveToFile('), 'saveToFile() function must exist');
+  assert.ok(content.includes('void loadFromFile('), 'loadFromFile() function must exist');
+  assert.ok(content.includes('double getTotal('), 'getTotal() function must exist');
+  assert.ok(content.includes('double getBalance('), 'getBalance() function must exist');
+  assert.ok(content.includes('double getTotalBalance('), 'getTotalBalance() function must exist');
+  assert.ok(content.includes('void openGui('), 'openGui() function must exist');
+  assert.ok(content.includes('int main('), 'main() entry point must exist');
 });
 
-test('Verification of required asset files', () => {
-  const requiredFiles = [
-    'gui.html',
-    'transactions.txt',
-    'main.cpp',
-    'Neutral.png',
-    'Happy.png',
-    'Sad.png',
-    'Broke.png',
-    'WEB BACKGROUND.png',
-    'Final Product.png',
-    'background-pixel.svg',
-    'Minecraftia.ttf'
-  ];
-
-  for (const f of requiredFiles) {
+test('Verification of organized directory structure and required asset files', () => {
+  const rootFiles = ['gui.html', 'main.cpp'];
+  for (const f of rootFiles) {
     assert.ok(fs.existsSync(path.join(ROOT_DIR, f)), `File ${f} must exist in root`);
   }
 
-  const presentationFolder = path.join(ROOT_DIR, 'Green and Blue Pixel Art Game Illustrative Group Project Presentation');
-  const presentationAssets = [
+  const imageAssets = [
     'Neutral.png',
     'Happy.png',
     'Sad.png',
     'Broke.png',
     'WEB BACKGROUND.png',
     'Final Product.png',
-    'background-pixel.svg',
-    'Minecraftia.ttf'
+    'background-pixel.svg'
   ];
-  for (const f of presentationAssets) {
+  for (const f of imageAssets) {
+    assert.ok(fs.existsSync(path.join(ROOT_DIR, 'assets', 'images', f)), `Asset ${f} must exist in assets/images`);
+  }
+
+  const fontAssets = [
+    'Minecraftia.ttf',
+    'PressStart2P.ttf',
+    'PressStart2P.woff2'
+  ];
+  for (const f of fontAssets) {
+    assert.ok(fs.existsSync(path.join(ROOT_DIR, 'assets', 'fonts', f)), `Asset ${f} must exist in assets/fonts`);
+  }
+
+  assert.ok(fs.existsSync(TXT_PATH), 'transactions.txt must exist in data/');
+
+  const presentationFolder = path.join(ROOT_DIR, 'docs', 'presentation');
+  for (const f of imageAssets) {
     assert.ok(fs.existsSync(path.join(presentationFolder, f)), `Asset ${f} must exist in presentation folder`);
   }
 });
@@ -99,7 +125,6 @@ test('Calculations: Balance, Income, Spending match C++ logic', () => {
 });
 
 test('Pet State Machine: Reactive transitions and Broke condition', () => {
-  // State machine implementation
   class PetStateMachine {
     constructor(initialIncome = 3200, initialSpending = 1100) {
       this.income = initialIncome;
@@ -129,39 +154,32 @@ test('Pet State Machine: Reactive transitions and Broke condition', () => {
     }
   }
 
-  // Case 1: Initial healthy state
   const pet = new PetStateMachine(3200, 1100);
   assert.equal(pet.state, 'Neutral', 'Pet must be Neutral when income >= spending');
 
-  // Case 2: Record Income -> Happy, then reverts to Neutral
   pet.recordIncome(500);
   assert.equal(pet.state, 'Happy', 'Pet must switch to Happy on Income');
   pet.revert();
   assert.equal(pet.state, 'Neutral', 'Pet must revert to Neutral when income exceeds spending');
 
-  // Case 3: Record Expense -> Sad, then reverts to Neutral if still positive
   pet.recordExpense(100);
   assert.equal(pet.state, 'Sad', 'Pet must switch to Sad on Expense');
   pet.revert();
   assert.equal(pet.state, 'Neutral', 'Pet must revert to Neutral when income exceeds spending');
 
-  // Case 4: Record huge Expense exceeding total income -> Sad, then reverts to Broke!
   pet.recordExpense(5000);
   assert.equal(pet.state, 'Sad', 'Pet must show Sad immediately upon recording Expense');
   pet.revert();
   assert.equal(pet.state, 'Broke', 'Pet must revert to Broke when spending > income');
 
-  // Case 5: Idle state remains Broke while spending > income
   assert.equal(pet.getIdleState(), 'Broke');
 
-  // Case 6: Record Income while Broke -> Happy temporarily, reverts to Broke if still negative
-  pet.recordIncome(100); // income 3800, spending 6200
+  pet.recordIncome(100);
   assert.equal(pet.state, 'Happy', 'Pet must show Happy temporarily on Income even if broke');
   pet.revert();
   assert.equal(pet.state, 'Broke', 'Pet returns to Broke if spending still exceeds income');
 
-  // Case 7: Record massive Income to recover -> Happy, then reverts to Neutral!
-  pet.recordIncome(5000); // income 8800, spending 6200
+  pet.recordIncome(5000);
   assert.equal(pet.state, 'Happy');
   pet.revert();
   assert.equal(pet.state, 'Neutral', 'Pet recovers to Neutral once income exceeds spending');
@@ -196,7 +214,6 @@ test('transactions.txt parsing handles empty remarks without de-synchronizing re
     return loaded;
   }
 
-  // Edge case: Transaction 1 has an empty remark line
   const sampleWithEmptyRemark = '2\nIncome\n1500\n\nExpense\n300\nGroceries\n';
   const parsed = parseTxt(sampleWithEmptyRemark);
   assert.equal(parsed.length, 2, 'Must parse both transactions even when one has an empty remark');
@@ -211,7 +228,6 @@ test('transactions.txt parsing handles empty remarks without de-synchronizing re
 test('gui.html contains all required elements, attributes, and scripts', () => {
   const html = fs.readFileSync(GUI_PATH, 'utf-8');
 
-  // Check required element IDs
   assert.ok(html.includes('id="val-balance"'), 'Must contain #val-balance indicator');
   assert.ok(html.includes('id="val-income"'), 'Must contain #val-income indicator');
   assert.ok(html.includes('id="val-spending"'), 'Must contain #val-spending indicator');
@@ -224,36 +240,36 @@ test('gui.html contains all required elements, attributes, and scripts', () => {
   assert.ok(html.includes('signpost-hitbox'), 'Must contain signpost element');
   assert.ok(html.includes('Name: POE'), 'Must reference pet Name: POE');
 
-  // Check sprite file references
   assert.ok(html.includes('Neutral.png'), 'Must reference Neutral.png');
   assert.ok(html.includes('Happy.png'), 'Must reference Happy.png');
   assert.ok(html.includes('Sad.png'), 'Must reference Sad.png');
   assert.ok(html.includes('Broke.png'), 'Must reference Broke.png');
   assert.ok(html.includes('WEB BACKGROUND.png'), 'Must reference WEB BACKGROUND.png');
 
-  // Check modern dialog practices
   assert.ok(html.includes('<dialog'), 'Must use native <dialog> element');
   assert.ok(html.includes('showModal()'), 'Must call showModal()');
   assert.ok(html.includes('closedby="any"'), 'Must use closedby="any" for modern light dismiss');
   assert.ok(html.includes('overscroll-behavior: contain'), 'Must contain overscroll-behavior');
   assert.ok(html.includes('dialog:not([open])'), 'Must contain fallback display rule for closed dialogs');
 
-  // Check container query support
   assert.ok(html.includes('container-type: inline-size'), 'Must support container queries for responsive stage');
 
-  // Check file import and auto-load
   assert.ok(html.includes('id="file-import-input"'), 'Must include file import input element');
-  assert.ok(html.includes("fetch('transactions.txt')"), 'Must attempt auto-load of transactions.txt');
+  assert.ok(html.includes("fetch('data/transactions.txt')") || html.includes("fetch('transactions.txt')"), 'Must attempt auto-load of transactions.txt');
 
-  // Check authentic pixel font and full-width layout
   assert.ok(html.includes('Minecraftia'), 'Must embed and use Minecraftia font matching Final Product.png');
   assert.ok(html.includes('width: 100vw;'), 'Stage must span full width without side bars');
   assert.ok(html.includes('height: 100vh;'), 'Stage must span full height without side bars');
 });
 
 test('Headless Chrome DOM validation', () => {
+  const chromePath = getChromePath();
+  if (!fs.existsSync(chromePath)) {
+    console.log(`Chrome binary not found at ${chromePath}, skipping headless DOM dump test`);
+    return;
+  }
   const dump = execSync(
-    `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --dump-dom "file://${GUI_PATH}"`,
+    `"${chromePath}" --headless --disable-gpu --dump-dom "file://${GUI_PATH}"`,
     { encoding: 'utf-8' }
   );
 
@@ -261,7 +277,7 @@ test('Headless Chrome DOM validation', () => {
   assert.ok(dump.includes('id="btn-income"'), 'Headless Chrome must render #btn-income');
   assert.ok(dump.includes('id="btn-expense"'), 'Headless Chrome must render #btn-expense');
   assert.ok(dump.includes('id="pet-sprite"'), 'Headless Chrome must render #pet-sprite');
-  assert.ok(dump.includes('src="Neutral.png"'), 'Initial sprite in DOM must be Neutral.png');
+  assert.ok(dump.includes('Neutral.png'), 'Initial sprite in DOM must be Neutral.png');
   assert.ok(dump.includes('Name: POE'), 'Signpost in DOM must include Name: POE');
 });
 
@@ -337,5 +353,27 @@ test('escapeHtml prevents XSS injection', () => {
   assert.equal(escapeHtml('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;');
   assert.equal(escapeHtml('Coffee & Tea'), 'Coffee &amp; Tea');
   assert.equal(escapeHtml('"quoted"'), '&quot;quoted&quot;');
+});
+
+test('Redesign validation: November label, Total Savings indicators, and core logic in main.cpp', () => {
+  const html = fs.readFileSync(GUI_PATH, 'utf-8');
+  assert.ok(html.includes('id="val-month"'), 'gui.html must contain #val-month element');
+  assert.ok(html.includes('November'), 'gui.html must include the word November');
+  assert.ok(html.includes('id="val-total-savings"'), 'gui.html must contain #val-total-savings element');
+
+  const mainCpp = fs.readFileSync(MAIN_CPP_PATH, 'utf-8');
+  assert.ok(mainCpp.includes('getTotalSavings('), 'main.cpp must contain getTotalSavings() function');
+  assert.ok(mainCpp.includes('leftoverBalance'), 'main.cpp must calculate leftover balance');
+  assert.ok(mainCpp.includes('totalSavings = initialSavings + leftoverBalance') || mainCpp.includes('totalSavings + leftoverBalance'), 'main.cpp must put leftover balance into total savings');
+});
+
+test('Simplicity validation: main.cpp maintains beginner structure under 100 lines', () => {
+  const mainCpp = fs.readFileSync(MAIN_CPP_PATH, 'utf-8');
+  const lines = mainCpp.split(/\r?\n/);
+  assert.ok(lines.length <= 100, `main.cpp should be around 100 lines (actual: ${lines.length})`);
+  assert.ok(mainCpp.includes('income - spending'), 'main.cpp balance formula must be income - spending');
+  assert.ok(mainCpp.includes('types[100]'), 'Parallel arrays must be maintained');
+  assert.ok(mainCpp.includes('saveToFile()'), 'saveToFile function must exist');
+  assert.ok(mainCpp.includes('loadFromFile()'), 'loadFromFile function must exist');
 });
 

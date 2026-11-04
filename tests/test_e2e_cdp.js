@@ -1,20 +1,47 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
 import assert from 'node:assert/strict';
 
-const GUI_URL = `file://${path.resolve('gui.html')}`;
-const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const ROOT_DIR = path.resolve(import.meta.dirname, '..');
+const GUI_URL = `file://${path.join(ROOT_DIR, 'gui.html')}`;
+
+function getChromePath() {
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      (process.env.LOCALAPPDATA || '') + '\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    for (const c of candidates) {
+      if (c && fs.existsSync(c)) return c;
+    }
+  } else if (process.platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  }
+  return 'google-chrome';
+}
+
+const CHROME_PATH = getChromePath();
 const PORT = 9333;
 
 async function run() {
+  const WS = globalThis.WebSocket;
+  if (!WS) {
+    console.log('Skipping E2E CDP test: global WebSocket not enabled (enable via NODE_OPTIONS="--experimental-websocket" or Node >= 21).');
+    return;
+  }
+
   console.log('Starting headless Chrome on port', PORT);
+  const tmpProfile = path.join(os.tmpdir(), 'chrome-test-profile-e2e');
   const chrome = spawn(CHROME_PATH, [
     `--remote-debugging-port=${PORT}`,
     '--headless',
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
-    '--user-data-dir=/tmp/chrome-test-profile-e2e',
+    `--user-data-dir=${tmpProfile}`,
     GUI_URL
   ]);
 
@@ -39,7 +66,7 @@ async function run() {
     }
 
     console.log('Connected to CDP at', wsUrl);
-    const ws = new WebSocket(wsUrl);
+    const ws = new WS(wsUrl);
     await new Promise((res, rej) => {
       ws.onopen = res;
       ws.onerror = rej;
