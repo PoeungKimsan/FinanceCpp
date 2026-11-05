@@ -702,8 +702,8 @@
         else if (t.type === 'Savings') savings += t.amount;
       }
 
-      // Balance = Income - Spending - Savings (matches C++ getBalance())
-      const balance = income - spending - savings;
+      // Balance = Income - Spending (matches C++ getBalance())
+      const balance = income - spending;
       return { income, spending, savings, balance };
     }
 
